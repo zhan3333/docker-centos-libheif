@@ -1,0 +1,20 @@
+FROM --platform=linux/amd64 centos:7
+
+ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+
+RUN mkdir -p /lib
+COPY lib/* /lib/
+
+RUN yum install -y wget git gcc gcc-c++ make automake autoconf libtool \
+    && yum clean all
+
+# 编译安装 heif
+RUN export GO111MODULE=off \
+    && tar -zxf /lib/libheif-1.12.0.tar.gz -C /lib/ \
+    && cd /lib/libheif-1.12.0 \
+    && ./autogen.sh \
+    && ./configure \
+    && make && make install \
+    && ldconfig /usr/local/lib
+
+RUN rm -rf /lib

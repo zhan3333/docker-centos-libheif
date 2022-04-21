@@ -1,0 +1,33 @@
+FROM --platform=linux/amd64 centos:7
+
+ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+
+RUN mkdir -p /lib
+COPY lib/* /lib/
+
+RUN yum install -y wget git gcc gcc-c++ make automake autoconf libtool \
+    && yum clean all
+
+# 编译安装 heif
+RUN export GO111MODULE=off \
+    && tar -zxf /lib/libheif-1.12.0.tar.gz -C /lib/ \
+    && cd /lib/libheif-1.12.0 \
+    && ./autogen.sh \
+    && ./configure \
+    && make && make install \
+    && ldconfig /usr/local/lib
+
+# 清理镜像要启用
+# RUN rm -rf /lib
+
+# 安装 golang
+ENV GOROOT=/usr/local/go
+ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+ENV GO111MODULE=on
+RUN tar -zxf /lib/go1.16.2.linux-amd64.tar.gz -C /usr/local
+
+# 测试用要删除
+RUN mkdir /work
+COPY heif-test.go /work/
+WORKDIR /work
+RUN go mod init test && go mod tidy && go mod vendor && go build -o heif-test heif-test.go
